@@ -36,7 +36,7 @@ Download the build for your system from the [latest release](https://github.com/
 |---|---|---|
 | `weather-<version>-windows-x64.zip` | Unzip, run `weather\weather.exe` | no |
 | `weather-<version>-linux-x64.zip` | Unzip, run `weather/bin/weather` | no |
-| `weather-<version>-macos-arm64.zip` | Unzip, run `weather/bin/weather` | no |
+| `weather-<version>-macos-arm64.zip` | Unzip, run `weather.app/Contents/MacOS/weather` (unsigned, so macOS may ask you to allow it) | no |
 | `weather-<version>.jar` | `java -jar weather-<version>.jar Villach` | yes, 17 or newer |
 
 Or build it yourself:

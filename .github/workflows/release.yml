@@ -12,7 +12,7 @@ permissions:
 jobs:
   bundle:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -50,7 +50,8 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z a -tzip "../weather-${{ github.ref_name }}-${{ matrix.name }}.zip" weather > /dev/null
           else
-            zip -qr "../weather-${{ github.ref_name }}-${{ matrix.name }}.zip" weather
+            # jpackage names the macOS bundle weather.app, not weather; -y keeps its symlinks intact
+            zip -qry "../weather-${{ github.ref_name }}-${{ matrix.name }}.zip" ./*
           fi
       - uses: actions/upload-artifact@v4
         with:
