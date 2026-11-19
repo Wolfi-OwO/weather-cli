@@ -1,0 +1,82 @@
+name: Release
+
+# Pushing a tag like v1.2.0 builds the jar plus a self-contained bundle (with its own Java runtime)
+# per operating system and attaches everything to a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x64
+          - os: windows-latest
+            name: windows-x64
+          - os: macos-latest
+            name: macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21   # jpackage needs a full JDK; the jar itself still targets Java 17
+          cache: maven
+      - name: Check the tag matches pom.xml
+        shell: bash
+        run: |
+          v=$(./mvnw -q -B help:evaluate -Dexpression=project.version -DforceStdout)
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} does not match pom version $v"; exit 1; }
+      - run: ./mvnw -B verify
+      - name: Build the self-contained bundle
+        shell: bash
+        run: |
+          mkdir dist
+          extra=""
+          [ "${{ matrix.os }}" = "windows-latest" ] && extra="--win-console"
+          jpackage --type app-image --name weather --input target --main-jar weather.jar \
+            --main-class dev.wolfi.weather.Main --dest dist $extra
+      - name: Zip the bundle
+        shell: bash
+        run: |
+          cd dist
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a -tzip "../weather-${{ github.ref_name }}-${{ matrix.name }}.zip" weather > /dev/null
+          else
+            zip -qr "../weather-${{ github.ref_name }}-${{ matrix.name }}.zip" weather
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.name }}
+          path: weather-*.zip
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: jar
+          path: target/weather.jar
+
+  publish:
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Name the jar and write checksums
+        run: |
+          mv artifacts/weather.jar "artifacts/weather-${GITHUB_REF_NAME}.jar"
+          cd artifacts && sha256sum * > SHA256SUMS
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/* --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" --generate-notes
