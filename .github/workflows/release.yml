@@ -43,6 +43,23 @@ jobs:
           [ "${{ matrix.os }}" = "windows-latest" ] && extra="--win-console"
           jpackage --type app-image --name weather --input target --main-jar weather.jar \
             --main-class dev.wolfi.weather.Main --dest dist $extra
+      - name: Smoke-test the bundle
+        shell: bash
+        # The jar is already tested by `verify`; this runs the jpackage launcher itself
+        # on its own OS, so a bundle that builds but does not start never gets published.
+        run: |
+          case "${{ matrix.os }}" in
+            windows-latest) launcher="dist/weather/weather.exe" ;;
+            macos-latest)   launcher="dist/weather.app/Contents/MacOS/weather" ;;
+            *)              launcher="dist/weather/bin/weather" ;;
+          esac
+          out=$("$launcher" --version)
+          echo "$out"
+          case "$out" in weather\ *) ;; *) echo "unexpected --version output"; exit 1 ;; esac
+          # An unknown place must exit 3 (documented in the README); this also proves the
+          # runtime started far enough to make a real network call.
+          set +e; "$launcher" "Nowhereville-xyz-12345" > /dev/null 2>&1; code=$?; set -e
+          [ "$code" = "3" ] || { echo "expected exit code 3 for an unknown place, got $code"; exit 1; }
       - name: Zip the bundle
         shell: bash
         run: |

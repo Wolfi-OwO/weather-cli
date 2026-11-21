@@ -6,7 +6,7 @@
 
   <groupId>dev.wolfi</groupId>
   <artifactId>weather-cli</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <packaging>jar</packaging>
   <name>weather-cli</name>
   <description>Current weather and a short forecast for any city, from the terminal.</description>

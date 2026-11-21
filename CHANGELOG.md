@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- The release workflow now starts each bundle (the Windows `.exe`, the macOS app, the Linux launcher) on its own operating system before publishing and checks `--version` and the exit code for an unknown place.
+- README notes the SmartScreen warning on Windows and that the macOS build is Apple Silicon only.
+
 ## 1.0.0
 
 Rewrite of the original single-file `weather-app`.
